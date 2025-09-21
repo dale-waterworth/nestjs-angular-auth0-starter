@@ -1,6 +1,6 @@
 # NestJS Angular and Auth0 Starter
 
-### Populdate Environment Variables
+### Populate Environment Variables
 Add your Auth0 values to the [.env](.env) for production or [.env.dev](.env.dev) for development.
 
 A script will build out the environment files Angular for local or prod builds.
