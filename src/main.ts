@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { Logger } from 'nestjs-pino';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,7 +15,10 @@ if (fs.existsSync('.env')) {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Use Pino logger
+  app.useLogger(app.get(Logger));
 
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:4200',
@@ -23,6 +27,8 @@ async function bootstrap() {
 
   const port = process.env.PORT || 8000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+
+  const logger = app.get(Logger);
+  logger.log(`Application is running on: http://localhost:${port}`, 'Bootstrap');
 }
 bootstrap();

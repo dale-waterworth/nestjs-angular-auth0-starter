@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.6.23
+    container_name: someverynew_bookings
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root123}
+      MARIADB_DATABASE: ${DB_NAME:-someverynew_bookings}
+      MARIADB_USER: ${DB_USER:-synio}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-synio123}
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: false
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - synio-network
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max_connections=200
+      --innodb_buffer_pool_size=256M
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+
+  # Optional: phpMyAdmin for database management
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: someverynew_bookings-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      UPLOAD_LIMIT: 300M
+    ports:
+      - "8080:80"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - synio-network
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  synio-network:
+    driver: bridge
