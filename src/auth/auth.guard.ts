@@ -1,4 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { PinoLogger, InjectPinoLogger } from 'nestjs-pino';
 import { expressjwt } from 'express-jwt';
 import { expressJwtSecret } from 'jwks-rsa';
 
@@ -19,6 +20,10 @@ export class AuthGuard implements CanActivate {
     credentialsRequired: true,
   });
 
+  constructor(
+    @InjectPinoLogger(AuthGuard.name)
+    private readonly logger: PinoLogger,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -27,11 +32,26 @@ export class AuthGuard implements CanActivate {
     return new Promise((resolve, reject) => {
       this.jwtCheck(request, response, (err: any) => {
         if (err) {
-          console.error('JWT Error:', err.message);
-          console.error('Expected audience:', process.env.AUTH0_AUDIENCE);
-          console.error('Expected issuer:', `https://${process.env.AUTH0_DOMAIN}/`);
+          this.logger.warn(
+            {
+              error: err.message,
+              url: request.url,
+              method: request.method,
+              expectedAudience: process.env.AUTH0_AUDIENCE,
+              expectedIssuer: `https://${process.env.AUTH0_DOMAIN}/`,
+            },
+            'JWT validation failed',
+          );
           reject(new UnauthorizedException(`Invalid token: ${err.message}`));
         } else {
+          this.logger.debug(
+            {
+              url: request.url,
+              method: request.method,
+              sub: request.auth?.sub,
+            },
+            'JWT validation successful',
+          );
           resolve(true);
         }
       });

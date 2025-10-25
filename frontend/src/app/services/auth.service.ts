@@ -62,10 +62,32 @@ export class AuthService {
     if (isAuthenticated) {
       const user = await this.auth0Client.getUser();
       this.userSubject.next(user);
+
+      // Sync user with backend database
+      await this.syncUserWithBackend();
     }
 
     // Remove the code from URL
     window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  private async syncUserWithBackend(): Promise<void> {
+    try {
+      const token = await this.getAccessToken();
+      const response = await fetch(`${environment.apiUrl}/user/sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to sync user with backend');
+      }
+    } catch (error) {
+      console.error('Error syncing user with backend:', error);
+    }
   }
 
   public async getAccessToken(): Promise<string> {
